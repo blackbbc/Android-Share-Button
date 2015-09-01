@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="drawable_array">
+        <item>@drawable/selector_facebook</item>
+        <item>@drawable/selector_google_plus</item>
+        <item>@drawable/selector_twitter</item>
+    </array>
+</resources>
