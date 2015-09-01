@@ -16,13 +16,17 @@
         app:gap_between_menu_fab="@dimen/min_gap"
         app:menu_radius="@dimen/small_circle_radius"
         app:no_of_menu="3"
-        app:menu_drawable="@array/drawable_array" />
+        app:menu_drawable="@array/drawable_array"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginTop="108dp" />
 
     <ImageView
         android:id="@+id/share_button"
         android:layout_width="64dp"
         android:layout_height="64dp"
-        android:layout_centerVertical="true"
+        android:visibility="gone"
         android:layout_centerHorizontal="true" />
 
 
