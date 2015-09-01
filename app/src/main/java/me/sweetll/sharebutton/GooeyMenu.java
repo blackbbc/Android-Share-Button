@@ -9,8 +9,10 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -55,6 +57,107 @@ public class GooeyMenu extends View {
     private Paint mCircleBorder;
     private List<Drawable> mDrawableArray;
 
+    /* For Share Drawable Start */
+
+    private final Paint sPaint = new Paint();
+
+    private float sRadius;
+    private float sCenterX;
+    private float sCenterY;
+    float circleRadius;
+
+    private float sProgress = 0f;
+
+    private MyLine line1;
+    private MyLine line2;
+    private MyCircle threeCircle;
+
+    private void initShareDrawable() {
+        circleRadius = 10f;
+        sRadius = mFabButtonRadius / 2;
+
+        sCenterX = 0f;
+        sCenterY = 0f;
+
+        line1 = new MyLine((float)Math.PI, (float)Math.PI * 7 / 4, (float)Math.PI * 5 / 3, (float)Math.PI * 11 / 4);
+        line2 = new MyLine((float)Math.PI, (float)Math.PI * 5 / 4, (float)Math.PI * 1 / 3, (float)Math.PI * 1 / 4);
+        threeCircle = new MyCircle();
+    }
+
+    private void setupLinePaint() {
+        sPaint.reset();
+        sPaint.setColor(Color.WHITE);
+        sPaint.setAntiAlias(true);
+        sPaint.setStrokeWidth(5);
+        sPaint.setStyle(Paint.Style.STROKE);
+        sPaint.setStrokeJoin(Paint.Join.ROUND);
+        sPaint.setStrokeCap(Paint.Cap.BUTT);
+    }
+
+    private void setupCirclePaint() {
+        sPaint.reset();
+        sPaint.setColor(Color.WHITE);
+        sPaint.setAntiAlias(true);
+        sPaint.setStyle(Paint.Style.FILL);
+    }
+
+    private class MyLine {
+        float point1StartAngle;
+        float point1EndAngle;
+        float point2StartAngle;
+        float point2EndAngle;
+
+        Point point1 = new Point();
+        Point point2 = new Point();
+
+        MyLine(float point1StartAngle, float point1EndAngle, float point2StartAngle, float point2EndAngle) {
+            this.point1StartAngle = point1StartAngle;
+            this.point1EndAngle = point1EndAngle;
+            this.point2StartAngle = point2StartAngle;
+            this.point2EndAngle = point2EndAngle;
+        }
+
+        public void draw(Canvas canvas) {
+            update();
+            setupLinePaint();
+            canvas.drawLine(point1.x, point1.y, point2.x, point2.y, sPaint);
+        }
+
+        private void update() {
+            float point1CurrentAngle = lerp(point1StartAngle, point1EndAngle, sProgress);
+            float point2CurrentAngle = lerp(point2StartAngle, point2EndAngle, sProgress);
+            point1.set((int)(sCenterX + sRadius * Math.cos(point1CurrentAngle)), (int)(sCenterY - sRadius * Math.sin(point1CurrentAngle)));
+            point2.set((int)(sCenterX + sRadius * Math.cos(point2CurrentAngle)), (int)(sCenterY - sRadius * Math.sin(point2CurrentAngle)));
+        }
+    }
+
+    private class MyCircle {
+        Point point1 = new Point();
+        Point point2 = new Point();
+        Point point3 = new Point();
+
+        MyCircle() {
+            point1.set((int)(sCenterX + sRadius * Math.cos(Math.PI)), (int)(sCenterY - sRadius * Math.sin(Math.PI)));
+            point2.set((int)(sCenterX + sRadius * Math.cos(Math.PI * 1 / 3)), (int)(sCenterY - sRadius * Math.sin(Math.PI * 1 / 3)));
+            point3.set((int)(sCenterX + sRadius * Math.cos(Math.PI * 5 / 3)), (int)(sCenterY - sRadius * Math.sin(Math.PI * 5 / 3)));
+        }
+
+        public void draw(Canvas canvas) {
+            setupCirclePaint();
+
+            float currentRadius = lerp(circleRadius, 0, sProgress);
+
+            canvas.drawCircle(point1.x, point1.y, currentRadius, sPaint);
+            canvas.drawCircle(point2.x, point2.y, currentRadius, sPaint);
+            canvas.drawCircle(point3.x, point3.y, currentRadius, sPaint);
+        }
+    }
+
+    private static float lerp(float a, float b, float t) {
+        return a + (b - a) * t;
+    }
+    /*For Share Drawable End */
+
     public static final int[] STATE_ACTIVE =
             {android.R.attr.state_enabled, android.R.attr.state_active};
     public static final int[] STATE_PRESSED =
@@ -77,10 +180,6 @@ public class GooeyMenu extends View {
         init(attrs);
     }
 
-    public GooeyMenu(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-        init(attrs);
-    }
 
     private void init(AttributeSet attrs) {
         if (attrs != null) {
@@ -145,6 +244,8 @@ public class GooeyMenu extends View {
         mRotationReverseAnimation.setDuration(ANIMATION_DURATION / 4);
         mRotationReverseAnimation.setInterpolator(new AccelerateInterpolator());
         mRotationReverseAnimation.addUpdateListener(mRotationUpdateListener);
+
+        initShareDrawable();
     }
 
     @Override
@@ -258,7 +359,12 @@ public class GooeyMenu extends View {
         canvas.drawPath(path, mCirclePaint);
         canvas.drawPath(path, mCircleBorder);
         canvas.rotate(mRotationAngle);
-        canvas.drawBitmap(mPlusBitmap, -mPlusBitmap.getWidth() / 2, -mPlusBitmap.getHeight() / 2, mCirclePaint);
+//        canvas.drawBitmap(mPlusBitmap, -mPlusBitmap.getWidth() / 2, -mPlusBitmap.getHeight() / 2, mCirclePaint);
+
+        line1.draw(canvas);
+        line2.draw(canvas);
+        threeCircle.draw(canvas);
+
         canvas.restore();
     }
 
