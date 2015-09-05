@@ -6,8 +6,6 @@ import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.Resources;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -20,6 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AnticipateOvershootInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 
 import java.util.ArrayList;
@@ -45,9 +44,11 @@ public class GooeyMenu extends View {
     private ArrayList<ObjectAnimator> mShowAnimation = new ArrayList<>();
     private ArrayList<ObjectAnimator> mHideAnimation = new ArrayList<>();
     private ValueAnimator mBezierAnimation, mBezierEndAnimation;
-    private boolean isMenuVisible = true;
+    private boolean isMenuVisible = false;
     private Float bezierConstant = BEZIER_CONSTANT;
-    private ValueAnimator mRotationAnimation,mRotationReverseAnimation, mCircleAnimation, mCircleReverseAnimation;
+    private ValueAnimator mRotationAnimation,mRotationReverseAnimation;
+    private ValueAnimator mCircle1Animation, mCircle2Animation, mCircle3Animation;
+    private ValueAnimator mCircle1ReverseAnimation, mCircle2ReverseAnimation, mCircle3ReverseAnimation;
     private GooeyMenuInterface mGooeyMenuInterface;
     private boolean gooeyMenuTouch;
     private Paint mCircleBorder;
@@ -62,12 +63,14 @@ public class GooeyMenu extends View {
     private float sCenterY;
     float circleRadius;
 
-    private float sProgress = 1f;
-    private float mProgress = 1f;
+    private float sProgress = 0f;
+//    private float mProgress = 0f;
 
     private MyLine line1;
     private MyLine line2;
-    private MyCircle threeCircle;
+    private MyCircle circle1;
+    private MyCircle circle2;
+    private MyCircle circle3;
 
     private void initShareDrawable() {
         circleRadius = 10f;
@@ -78,7 +81,11 @@ public class GooeyMenu extends View {
 
         line1 = new MyLine((float)Math.PI, (float)Math.PI * 7 / 4, (float)Math.PI * 5 / 3, (float)Math.PI * 11 / 4);
         line2 = new MyLine((float)Math.PI, (float)Math.PI * 5 / 4, (float)Math.PI * 1 / 3, (float)Math.PI * 1 / 4);
-        threeCircle = new MyCircle();
+
+        circle1 = new MyCircle(Math.PI * 5 / 3);
+        circle2 = new MyCircle(Math.PI);
+        circle3 = new MyCircle(Math.PI * 1 / 3);
+
     }
 
     private void setupLinePaint() {
@@ -129,14 +136,16 @@ public class GooeyMenu extends View {
     }
 
     private class MyCircle {
-        Point point1 = new Point();
-        Point point2 = new Point();
-        Point point3 = new Point();
+        Point mCenterPoint = new Point();
+        //0 is share, 1 is close
+        float mProgress = 0;
 
-        MyCircle() {
-            point1.set((int)(sCenterX + sRadius * Math.cos(Math.PI)), (int)(sCenterY - sRadius * Math.sin(Math.PI)));
-            point2.set((int)(sCenterX + sRadius * Math.cos(Math.PI * 1 / 3)), (int)(sCenterY - sRadius * Math.sin(Math.PI * 1 / 3)));
-            point3.set((int)(sCenterX + sRadius * Math.cos(Math.PI * 5 / 3)), (int)(sCenterY - sRadius * Math.sin(Math.PI * 5 / 3)));
+        MyCircle(double angle) {
+            mCenterPoint.set((int) (sCenterX + sRadius * Math.cos(angle)), (int) (sCenterY - sRadius * Math.sin(angle)));
+        }
+
+        public void setProgress(float progress) {
+            this.mProgress = progress;
         }
 
         public void draw(Canvas canvas) {
@@ -144,9 +153,8 @@ public class GooeyMenu extends View {
 
             float currentRadius = lerp(circleRadius, 0, mProgress);
 
-            canvas.drawCircle(point1.x, point1.y, currentRadius, sPaint);
-            canvas.drawCircle(point2.x, point2.y, currentRadius, sPaint);
-            canvas.drawCircle(point3.x, point3.y, currentRadius, sPaint);
+            canvas.drawCircle(mCenterPoint.x, mCenterPoint.y, currentRadius, sPaint);
+
         }
 
     }
@@ -244,17 +252,43 @@ public class GooeyMenu extends View {
         mRotationReverseAnimation.setInterpolator(new AccelerateInterpolator());
         mRotationReverseAnimation.addUpdateListener(mRotationUpdateListener);
 
-        mCircleAnimation = ValueAnimator.ofFloat(0, 1);
-        mCircleAnimation.setDuration(150);
-        mCircleAnimation.setStartDelay(100);
-        mCircleAnimation.setInterpolator(new AccelerateInterpolator());
-        mCircleAnimation.addUpdateListener(mCircleUpdateListener);
+        //消失动画
+        mCircle1Animation = ValueAnimator.ofFloat(0, 1);
+        mCircle1Animation.setDuration(150);
+        mCircle1Animation.setStartDelay(75);
+        mCircle1Animation.setInterpolator(new AccelerateInterpolator());
+        mCircle1Animation.addUpdateListener(mCircle1UpdateListener);
 
-        mCircleReverseAnimation = ValueAnimator.ofFloat(1, 0);
-        mCircleReverseAnimation.setDuration(200);
-        mCircleReverseAnimation.setStartDelay(150);
-        mCircleReverseAnimation.setInterpolator(new AccelerateInterpolator());
-        mCircleReverseAnimation.addUpdateListener(mCircleUpdateListener);
+        mCircle2Animation = ValueAnimator.ofFloat(0, 1);
+        mCircle2Animation.setDuration(200);
+        mCircle2Animation.setStartDelay(150);
+        mCircle2Animation.setInterpolator(new AccelerateInterpolator());
+        mCircle2Animation.addUpdateListener(mCircle2UpdateListener);
+
+        mCircle3Animation = ValueAnimator.ofFloat(0, 1);
+        mCircle3Animation.setDuration(150);
+        mCircle3Animation.setStartDelay(0);
+        mCircle3Animation.setInterpolator(new AccelerateInterpolator());
+        mCircle3Animation.addUpdateListener(mCircle3UpdateListener);
+
+        //出现动画
+        mCircle1ReverseAnimation = ValueAnimator.ofFloat(1, 0);
+        mCircle1ReverseAnimation.setDuration(200);
+        mCircle1ReverseAnimation.setStartDelay(0);
+        mCircle1ReverseAnimation.setInterpolator(new DecelerateInterpolator());
+        mCircle1ReverseAnimation.addUpdateListener(mCircle1UpdateListener);
+
+        mCircle2ReverseAnimation = ValueAnimator.ofFloat(1, 0);
+        mCircle2ReverseAnimation.setDuration(200);
+        mCircle2ReverseAnimation.setStartDelay(100);
+        mCircle2ReverseAnimation.setInterpolator(new DecelerateInterpolator());
+        mCircle2ReverseAnimation.addUpdateListener(mCircle2UpdateListener);
+
+        mCircle3ReverseAnimation = ValueAnimator.ofFloat(1, 0);
+        mCircle3ReverseAnimation.setDuration(200);
+        mCircle3ReverseAnimation.setStartDelay(200);
+        mCircle3ReverseAnimation.setInterpolator(new DecelerateInterpolator());
+        mCircle3ReverseAnimation.addUpdateListener(mCircle3UpdateListener);
 
         initShareDrawable();
     }
@@ -309,7 +343,8 @@ public class GooeyMenu extends View {
         mCenterY = h - mFabButtonRadius;
         for (int i = 0; i < mNumberOfMenu; i++) {
             CirclePoint circlePoint = new CirclePoint();
-            circlePoint.setRadius(mGab);
+//            circlePoint.setRadius(mGab);
+            circlePoint.setRadius(0);
             circlePoint.setAngle(Math.PI / 2 + (Math.PI / 2 / (mNumberOfMenu - 1)) * i);
             mMenuPoints.add(circlePoint);
             ObjectAnimator animShow = ObjectAnimator.ofFloat(mMenuPoints.get(i), "Radius", 0f, mGab);
@@ -362,6 +397,7 @@ public class GooeyMenu extends View {
                 canvas.restore();
             }
         }
+
         canvas.save();
         canvas.translate(mCenterX, mCenterY);
         Path path = createPath();
@@ -370,7 +406,10 @@ public class GooeyMenu extends View {
 
         line1.draw(canvas);
         line2.draw(canvas);
-        threeCircle.draw(canvas);
+
+        circle1.draw(canvas);
+        circle2.draw(canvas);
+        circle3.draw(canvas);
 
         canvas.restore();
     }
@@ -526,7 +565,9 @@ public class GooeyMenu extends View {
 
     private void startShowAnimate() {
         mRotationAnimation.start();
-        mCircleAnimation.start();
+        mCircle1Animation.start();
+        mCircle2Animation.start();
+        mCircle3Animation.start();
         for (ObjectAnimator objectAnimator : mShowAnimation) {
             objectAnimator.start();
         }
@@ -534,7 +575,9 @@ public class GooeyMenu extends View {
 
     private void startHideAnimate() {
         mRotationReverseAnimation.start();
-        mCircleReverseAnimation.start();
+        mCircle1ReverseAnimation.start();
+        mCircle2ReverseAnimation.start();
+        mCircle3ReverseAnimation.start();
         for (ObjectAnimator objectAnimator : mHideAnimation) {
             objectAnimator.start();
         }
@@ -564,10 +607,30 @@ public class GooeyMenu extends View {
         }
     };
 
-    ValueAnimator.AnimatorUpdateListener mCircleUpdateListener = new ValueAnimator.AnimatorUpdateListener() {
+    ValueAnimator.AnimatorUpdateListener mCircle1UpdateListener = new ValueAnimator.AnimatorUpdateListener() {
         @Override
         public void onAnimationUpdate(ValueAnimator valueAnimator) {
-            mProgress = (float)valueAnimator.getAnimatedValue();
+            float mProgress = (float)valueAnimator.getAnimatedValue();
+            circle1.setProgress(mProgress);
+
+            invalidate();
+        }
+    };
+
+    ValueAnimator.AnimatorUpdateListener mCircle2UpdateListener = new ValueAnimator.AnimatorUpdateListener() {
+        @Override
+        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+            float mProgress = (float)valueAnimator.getAnimatedValue();
+            circle2.setProgress(mProgress);
+            invalidate();
+        }
+    };
+
+    ValueAnimator.AnimatorUpdateListener mCircle3UpdateListener = new ValueAnimator.AnimatorUpdateListener() {
+        @Override
+        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+            float mProgress = (float)valueAnimator.getAnimatedValue();
+            circle3.setProgress(mProgress);
             invalidate();
         }
     };
